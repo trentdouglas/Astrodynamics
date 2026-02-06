@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import math
+import numpy as np
 
 @dataclass(frozen=True)
 class Vector3:
@@ -68,6 +69,13 @@ class Vector3:
         if mag == 0:
             raise ValueError("Cannot normalize a zero vector")
         return self * (1 / mag)
+
+    def get_np_vector(self):
+        return np.array([
+            [self.x],
+            [self.y],
+            [self.z]
+        ])
 
 
 # Semi Major Axis (a)
@@ -152,6 +160,28 @@ class KeplerianElements:
         """
 
         mu = self.mu_earth
+        if position is None or velocity is None:
+            # Initialize attributes to None (or sensible defaults)
+            self.xi = None
+            self.a = None
+            self.h_ = None
+            self.ecc = None
+            self.inc = None
+            self.inc_deg = None
+            self.N_Unit = None
+            self.raan = None
+            self.raan_deg = None
+            self.B_Unit = None
+            self.argp = None
+            self.argp_deg = None
+            self.ta = None
+            self.ta_deg = None
+            self.period = None
+            self.apogee = None
+            self.perigee = None
+            self.mu = 3.986004418e14  # m^3 / s^2
+            return
+        
         k_hat = Vector3(0, 0, 1)
 
         # Specific orbital energy
