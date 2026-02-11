@@ -285,3 +285,37 @@ def compute_f_g_f_dot_g_dot(pos_0, vel_0, pos, vel:Vector3) -> tuple[float, floa
     f_dot = (vel.x*vel_0.y - vel_0.x*vel.y)/h.magnitude()
     g_dot = (pos_0.x*vel.y - vel.x*pos_0.y)/h.magnitude()
     return f, g, f_dot, g_dot
+
+def compute_matrix_eci_to_uvw(pos_, vel_: Vector3):
+    U_hat = pos_/abs(pos_.magnitude())
+    W_hat = (pos_.cross(vel_))/abs((pos_.cross(vel_)).magnitude())
+    V_hat = W_hat.cross(U_hat)
+    # rotation matrix:
+    R = np.array([
+        [U_hat.x, U_hat.y, U_hat.z],
+        [V_hat.x, V_hat.y, V_hat.z],
+        [W_hat.x, W_hat.y, W_hat.z]
+    ])
+    # note - to translate backwards from uvw to eci use the inverse of this matrix
+    return R
+
+def compute_rotaton_perifocal_to_eci(raan: float, i: float, argp: float, perifocal_pos: Vector3, perifocal_vel: Vector3) -> tuple[np.array, Vector3, Vector3]:
+    # rotation matrix:
+    R = np.array([
+        [math.cos(raan)*math.cos(argp)-math.sin(raan)*math.sin(argp)*math.cos(i), -math.cos(raan)*math.sin(argp)-math.sin(raan)*math.cos(argp)*math.cos(i), math.sin(raan)*math.sin(i)],
+        [math.sin(raan)*math.cos(argp)+math.cos(raan)*math.sin(argp)*math.cos(i), -math.sin(raan)*math.sin(argp)+math.cos(raan)*math.cos(argp)*math.cos(i), -math.cos(raan)*math.sin(i)],
+        [math.sin(i)*math.sin(argp), math.sin(i)*math.cos(argp), math.cos(i)]
+    ])
+    pos_np = ([
+        [perifocal_pos.x],
+        [perifocal_pos.y],
+        [perifocal_pos.z]
+    ])
+    vel_np = ([
+        [perifocal_vel.x],
+        [perifocal_vel.y],
+        [perifocal_vel.z]
+    ])
+    eci_pos_np = R @ pos_np
+    eci_vel_np = R @ vel_np
+    return R, Vector3(float(eci_pos_np[0][0]), float(eci_pos_np[1][0]), float(eci_pos_np[2][0])) ,Vector3(float(eci_vel_np[0][0]), float(eci_vel_np[1][0]), float(eci_vel_np[2][0]))

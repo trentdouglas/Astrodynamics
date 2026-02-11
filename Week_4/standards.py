@@ -226,16 +226,10 @@ class KeplerianElements:
         self.apogee = compute_apogee(self.a, self.ecc)
         self.perigee = compute_perigee(self.a, self.ecc)
 
-def compute_eccentric_anomaly (nu: float, e: float) -> float:
-    sin_E = (math.sin(nu) * math.sqrt(1 - e**2)) / (1 + e * math.cos(nu))
-    cos_E = (e + math.cos(nu)) / (1 + e * math.cos(nu))
-    E = math.atan2(sin_E, cos_E)
-    if E < 0:
-        E += 2 * math.pi
-    return E
+def compute_eccentric_anomaly(nu: float, e: float) -> float:
+    return math.asin((math.sin(nu)*math.sqrt(1 - math.pow(e, 2))) / (1 + e*math.cos(nu)))
 
 def compute_mean_anomaly(E: float, e: float) -> float:
-    # kepler's equation:
     return E - e*math.sin(E)
 
 def compute_mean_motion(mu: float, a: float):
@@ -248,8 +242,8 @@ def compute_time_delta_after_angle(rad_angle: float, kepler_elements: KeplerianE
     E_angle = compute_eccentric_anomaly(rad_angle, kepler_elements.ecc)
     t_delta_nu_to_angle = (1/n)*(E_angle-kepler_elements.ecc*math.sin(E_angle)) - (1/n)*(E_SV-kepler_elements.ecc*math.sin(E_SV))
     #if t is negative, then we add the orbital period to it to get the next time it will hit the angle
-    if t_delta_nu_to_angle < 0:
-        t_delta_nu_to_angle += 2*math.pi/n  # orbital period
+    # if t_delta_nu_to_angle < 0:
+    #     t_delta_nu_to_angle += 2*math.pi/n  # orbital period
     return E_angle, t_delta_nu_to_angle
 
 def compute_propagate_nu_given_delta_t(kepler_elements: KeplerianElements, time_delta: float) -> tuple[float, int, float]:
@@ -292,14 +286,36 @@ def compute_f_g_f_dot_g_dot(pos_0, vel_0, pos, vel:Vector3) -> tuple[float, floa
     g_dot = (pos_0.x*vel.y - vel.x*pos_0.y)/h.magnitude()
     return f, g, f_dot, g_dot
 
-def compute_f_g_f_dot_g_dot_no_final_perifocal(kepler_elements: KeplerianElements, E: float) -> tuple[float, float, float, float]:
-    p = kepler_elements.a*(1-math.pow(kepler_elements.ecc,2))
-    r_0 = p*(1/(1+kepler_elements.ecc*math.cos(kepler_elements.ta)))
-    r = kepler_elements.a*(1-kepler_elements.ecc*math.cos(E))
-    r_test = kepler_elements.a*math.sqrt(1-math.pow(kepler_elements.ecc, 2))*math.sin(E)/math.sin(kepler_elements.ta)
-    print(r-r_test)
+def compute_matrix_eci_to_uvw(pos_, vel_: Vector3):
+    U_hat = pos_/abs(pos_.magnitude())
+    W_hat = (pos_.cross(vel_))/abs((pos_.cross(vel_)).magnitude())
+    V_hat = W_hat.cross(U_hat)
+    # rotation matrix:
+    R = np.array([
+        [U_hat.x, U_hat.y, U_hat.z],
+        [V_hat.x, V_hat.y, V_hat.z],
+        [W_hat.x, W_hat.y, W_hat.z]
+    ])
+    # note - to translate backwards from uvw to eci use the inverse of this matrix
+    return R
 
-def compute_perifocal_via_f_and_g(pos_0: Vector3, vel_0: Vector3, f: float, g: float, f_dot: float, g_dot: float) -> tuple[Vector3, Vector3]:
-    pos_ = f*pos_0 + g*vel_0
-    vel_ = f_dot*pos_0 + g_dot*vel_0
-    return pos_, vel_
+def compute_rotaton_perifocal_to_eci(raan: float, i: float, argp: float, perifocal_pos: Vector3, perifocal_vel: Vector3) -> tuple[np.array, Vector3, Vector3]:
+    # rotation matrix:
+    R = np.array([
+        [math.cos(raan)*math.cos(argp)-math.sin(raan)*math.sin(argp)*math.cos(i), -math.cos(raan)*math.sin(argp)-math.sin(raan)*math.cos(argp)*math.cos(i), math.sin(raan)*math.sin(i)],
+        [math.sin(raan)*math.cos(argp)+math.cos(raan)*math.sin(argp)*math.cos(i), -math.sin(raan)*math.sin(argp)+math.cos(raan)*math.cos(argp)*math.cos(i), -math.cos(raan)*math.sin(i)],
+        [math.sin(i)*math.sin(argp), math.sin(i)*math.cos(argp), math.cos(i)]
+    ])
+    pos_np = ([
+        [perifocal_pos.x],
+        [perifocal_pos.y],
+        [perifocal_pos.z]
+    ])
+    vel_np = ([
+        [perifocal_vel.x],
+        [perifocal_vel.y],
+        [perifocal_vel.z]
+    ])
+    eci_pos_np = R @ pos_np
+    eci_vel_np = R @ vel_np
+    return R, Vector3(float(eci_pos_np[0][0]), float(eci_pos_np[1][0]), float(eci_pos_np[2][0])) ,Vector3(float(eci_vel_np[0][0]), float(eci_vel_np[1][0]), float(eci_vel_np[2][0]))
