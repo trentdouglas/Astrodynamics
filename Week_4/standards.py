@@ -299,6 +299,21 @@ def compute_matrix_eci_to_uvw(pos_, vel_: Vector3):
     # note - to translate backwards from uvw to eci use the inverse of this matrix
     return R
 
+def compute_f_g_f_dot_g_dot_no_final_perifocal(ecc, original_ta, new_ta, a, mu_earth, delta_E, delta_t: float) -> tuple[float, float, float, float]:
+    p = a*(1-math.pow(ecc,2))
+    r_0 = p*(1/(1+ecc*math.cos(original_ta)))
+    r = p*(1/(1+ecc*math.cos(new_ta)))
+    f = 1-(a/r_0)*(1-math.cos(delta_E))
+    g = (delta_t)-math.sqrt((a**3)/mu_earth)*(delta_E-math.sin(delta_E))
+    f_dot = (-math.sin(delta_E)*math.sqrt(mu_earth*a))/(r_0*r)
+    g_dot = 1-(a/r)*(1-math.cos(delta_E))
+    return f, g, f_dot, g_dot
+
+def compute_perifocal_via_f_and_g(pos_0: Vector3, vel_0: Vector3, f: float, g: float, f_dot: float, g_dot: float) -> tuple[Vector3, Vector3]:
+    pos_ = f*pos_0 + g*vel_0
+    vel_ = f_dot*pos_0 + g_dot*vel_0
+    return pos_, vel_
+
 def compute_rotaton_perifocal_to_eci(raan: float, i: float, argp: float, perifocal_pos: Vector3, perifocal_vel: Vector3) -> tuple[np.array, Vector3, Vector3]:
     # rotation matrix:
     R = np.array([
