@@ -374,6 +374,14 @@ class KeplerianElements:
 def compute_eccentric_anomaly(nu: float, e: float) -> float:
     return math.asin((math.sin(nu)*math.sqrt(1 - math.pow(e, 2))) / (1 + e*math.cos(nu)))
 
+def compute_eccentric_anomaly(nu: float, e: float) -> float:
+    sin_E = math.sqrt(1 - e**2) * math.sin(nu) / (1 + e * math.cos(nu))
+    cos_E = (e + math.cos(nu)) / (1 + e * math.cos(nu))
+    E = math.atan2(sin_E, cos_E)
+    if E < 0:
+        E += 2 * math.pi
+    return E
+
 def compute_mean_anomaly(E: float, e: float) -> float:
     return E - e*math.sin(E)
 
@@ -387,8 +395,8 @@ def compute_time_delta_after_angle(rad_angle: float, kepler_elements: KeplerianE
     E_angle = compute_eccentric_anomaly(rad_angle, kepler_elements.ecc)
     t_delta_nu_to_angle = (1/n)*(E_angle-kepler_elements.ecc*math.sin(E_angle)) - (1/n)*(E_SV-kepler_elements.ecc*math.sin(E_SV))
     #if t is negative, then we add the orbital period to it to get the next time it will hit the angle
-    # if t_delta_nu_to_angle < 0:
-    #     t_delta_nu_to_angle += 2*math.pi/n  # orbital period
+    if t_delta_nu_to_angle < 0:
+        t_delta_nu_to_angle += 2*math.pi/n  # orbital period
     return E_angle, t_delta_nu_to_angle
 
 def compute_propagate_nu_given_delta_t(kepler_elements: KeplerianElements, time_delta: float) -> tuple[float, int, float]:
