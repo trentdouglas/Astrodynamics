@@ -487,3 +487,22 @@ def compute_rotaton_perifocal_to_eci(raan: float, i: float, argp: float, perifoc
     eci_pos_np = R @ pos_np
     eci_vel_np = R @ vel_np
     return R, Vector3(float(eci_pos_np[0][0]), float(eci_pos_np[1][0]), float(eci_pos_np[2][0])) ,Vector3(float(eci_vel_np[0][0]), float(eci_vel_np[1][0]), float(eci_vel_np[2][0]))
+
+class Step:
+    T: float
+    RK_X: float
+    RK_Y: float
+    RK_Z: float
+    RK_XD: float
+    RK_YD: float
+    RK_ZD: float
+    SMA: float
+    def __init__(self, T, RK_X, RK_Y, RK_Z, RK_XD, RK_YD, RK_ZD, SMA):
+        self.T = T
+        self.RK_X = RK_X
+        self.RK_Y = RK_Y
+        self.RK_Z = RK_Z
+        self.RK_XD = RK_XD
+        self.RK_YD = RK_YD
+        self.RK_ZD = RK_ZD
+        self.SMA = SMA
