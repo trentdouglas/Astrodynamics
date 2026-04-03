@@ -709,3 +709,13 @@ def calculate_lat_lon_h(Earth_Eccentricity, Pos_, Earth_Radius) -> tuple[float, 
     p = sqrt(Pos_.x**2 + Pos_.y**2)
     h = p / cos(lat) - N_i
     return degrees(lat), degrees(lon), h/1000  
+
+def convert_lat_lon_h_to_ecef(lat, lon, height, earth_radius) -> Vector3:
+    f = 1/298.257223563
+    earth_ecc = 2*f-f**2
+    lat = lat
+    lon = lon
+    x = (earth_radius/sqrt(1-earth_ecc * sin(lat)**2) + height)*cos(lat)*cos(lon)
+    y = (earth_radius/sqrt(1-earth_ecc * sin(lat)**2) + height)*cos(lat)*sin(lon)
+    z = (earth_radius*(1-earth_ecc)/sqrt(1-earth_ecc * sin(lat)**2) + height)*sin(lat)
+    return Vector3(x, y, z)
